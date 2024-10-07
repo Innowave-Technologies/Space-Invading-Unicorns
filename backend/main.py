@@ -5,8 +5,19 @@ import pandas as pd
 import requests
 
 from data.findnicestcity.utils import bestLocation
+from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
+
 
 app = FastAPI()
+
+# Add CORS middleware to allow requests from the Netlify frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://geonest.netlify.app"],  # Replace with your Netlify site
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 class UserInput(BaseModel):
@@ -30,32 +41,49 @@ def getUserParametersAndCalculate(userInput: UserInput):
 
     print(userInput)
     # Do ML model algo thingy
-    userData = [userInput.temperature, userInput.treeCoverage, userInput.population, userInput.polutionLevels]
-    userPriorities = [userInput.temperaturePriority, userInput.treeCoveragePriority, userInput.populationPriority, userInput.polutionLevelsPriority]
-
+    userData = [
+        userInput.temperature,
+        userInput.treeCoverage,
+        userInput.population,
+        userInput.polutionLevels,
+    ]
+    userPriorities = [
+        userInput.temperaturePriority,
+        userInput.treeCoveragePriority,
+        userInput.populationPriority,
+        userInput.polutionLevelsPriority,
+    ]
 
     # print(userData)
     # print(userPriorities)
 
-    merged_data = pd.read_csv('data/findnicestcity/data.csv')
+    merged_data = pd.read_csv("data/findnicestcity/data.csv")
 
     print(merged_data.head())
     # Combining all data into a single array (N+2 x M)
-    vegetation_density = merged_data['Vegetation'].to_numpy()
-    population_density = merged_data['PopulationDensity'].to_numpy()
-    temperature = merged_data['Temperature'].to_numpy()
-    air_pollution = merged_data['Pollution'].to_numpy()
+    vegetation_density = merged_data["Vegetation"].to_numpy()
+    population_density = merged_data["PopulationDensity"].to_numpy()
+    temperature = merged_data["Temperature"].to_numpy()
+    air_pollution = merged_data["Pollution"].to_numpy()
     # Coordinates for each location (latitude and longitude)
-    latitude = merged_data['latitude'].to_numpy()
-    longitude = merged_data['longitude'].to_numpy()
+    latitude = merged_data["latitude"].to_numpy()
+    longitude = merged_data["longitude"].to_numpy()
 
-    data = np.array([temperature, vegetation_density, population_density, air_pollution, latitude, longitude])
+    data = np.array(
+        [
+            temperature,
+            vegetation_density,
+            population_density,
+            air_pollution,
+            latitude,
+            longitude,
+        ]
+    )
 
     foundCoordinates, foundFeatures = bestLocation(userPriorities, userData, data)
 
     longitude, latitude = foundCoordinates
     temperature, treeCoverage, population, pollution = foundFeatures
-
 
     # Request to Google Maps API to get country and city
     print(userInput)
@@ -70,7 +98,7 @@ def getUserParametersAndCalculate(userInput: UserInput):
             "TreeCoverage": treeCoverage,
             "Population": population,
             "Temperature": temperature,
-            "Pollution": pollution
+            "Pollution": pollution,
         }
     else:
         return {"error": "Location not found"}
