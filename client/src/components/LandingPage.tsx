@@ -44,27 +44,38 @@ export function LandingPage({ setResponse }) {
             treeCoveragePriority: Math.round(treeCoveragePriority),
         };
 
-
         console.log(formData);
 
         setLoading(true);
 
-        const apiResponse = await axios.post('/api/calculate', formData);
-        console.log(apiResponse);
-        const coordinates = {
-            lat: apiResponse.data.Longitude,
-            lng: apiResponse.data.Latitude,
-            treeCoverage: apiResponse.data.TreeCoverage,
-            population: apiResponse.data.Population,
-            pollution: apiResponse.data.Pollution, // Scale down pollution value
-            temperature: apiResponse.data.Temperature,
-            country: apiResponse.data.Country,
-        };
+        // Use environment variable to differentiate between dev and production
+        const apiUrl = import.meta.env.MODE === 'development'
+            ? '/api/calculate'  // In development, proxy will handle this
+            : import.meta.env.VITE_API_URL + '/calculate';  // In production, point to Render backend (no /api prefix)
 
-        setResponse({ coordinates });
+        try {
+            const apiResponse = await axios.post(apiUrl, formData);
+            console.log(apiResponse);
 
-        setLoading(false);
+            const coordinates = {
+                lat: apiResponse.data.Longitude,
+                lng: apiResponse.data.Latitude,
+                treeCoverage: apiResponse.data.TreeCoverage,
+                population: apiResponse.data.Population,
+                pollution: apiResponse.data.Pollution, // Scale down pollution value
+                temperature: apiResponse.data.Temperature,
+                country: apiResponse.data.Country,
+            };
+
+            setResponse({ coordinates });
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+
 
 
 
